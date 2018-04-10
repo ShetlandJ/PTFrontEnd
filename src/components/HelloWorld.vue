@@ -26,47 +26,49 @@ export default {
     this.$http.get('https://api.mlab.com/api/1/databases/signins/collections/signins?apiKey=Vp2I1nmC961_lV2whDojmmOuZzXb0S_o&l=10000')
     .then(response => {
       this.data = response.body;
-      console.log('########################')
       console.log("Data has loaded");
-      console.log('########################')
     })
   },
   methods: {
-    // fetchData () {
-    //   this.$http.get('https://api.mlab.com/api/1/databases/signins/collections/signins?apiKey=Vp2I1nmC961_lV2whDojmmOuZzXb0S_o&l=10000')
-    //   .then(response => {
-    //     this.data = response.body
-    //     // or like this this.getTemp = response.json()
-    //   })
-    // },
     april() {
-      let april = this.data.filter(signin => signin.date > 1523361490925)
-      console.log('########################')
-      console.log(april);
-      console.log('########################')
+      var date = new Date()
+      let april = this.data.filter(
+        signin =>
+        this.sortByMonth(signin)
+      )
+    },
+    sortByMonth(signin) {
+
+      var timeStamp = new Date(signin.date)
+      if (timeStamp.getMonth()-1 === 2) {
+        console.log('########################')
+        console.log(signin);
+        console.log('########################')
       }
-    },
-    mounted() {
 
-    },
-  }
+    }
+  },
+  mounted() {
 
-  </script>
+  },
+}
 
-  <!-- Add "scoped" attribute to limit CSS to this component only -->
-  <style scoped>
-    h1, h2 {
-      font-weight: normal;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      display: inline-block;
-      margin: 0 10px;
-    }
-    a {
-      color: #42b983;
-    }
-  </style>
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+h1, h2 {
+  font-weight: normal;
+}
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+li {
+  display: inline-block;
+  margin: 0 10px;
+}
+a {
+  color: #42b983;
+}
+</style>
