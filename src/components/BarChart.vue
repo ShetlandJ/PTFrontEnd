@@ -17,6 +17,8 @@
       </option>
     </select>
 
+    <button type="button" name="button" v-on:click="logData">logData</button>
+
     <div class="chartBlock">
       <canvas id="month-visits-chart"></canvas>
     </div>
@@ -136,13 +138,13 @@ export default {
 
       var ctx = document.getElementById("month-visits-chart").getContext('2d');
       var myBarChart = new Chart(ctx, {
-        type: 'horizontalBar',
+        type: 'bar',
         data: {
           labels: dayMonth,
           backgroundColor: '#FFFFFF',
           backgroundColor: '#FFFFFF',
           datasets: [{
-            label: 'Visits this month by day',
+            label: 'Visits per day per for ' + this.monthName,
             data: visits,
             backgroundColor:
             '#CC0033',
@@ -189,13 +191,13 @@ export default {
 
       var ctx = document.getElementById("hourly-visits-chart").getContext('2d');
       var myBarChart = new Chart(ctx, {
-        type: 'horizontalBar',
+        type: 'bar',
         data: {
           labels: hours_array,
           backgroundColor: '#FFFFFF',
           backgroundColor: '#FFFFFF',
           datasets: [{
-            label: 'Visits today by hour',
+            label: 'Visits per hour for ' + this.selectedDay + " of " + this.selectedMonth,
             data: visits,
             backgroundColor:
             '#CC0033',
@@ -207,7 +209,7 @@ export default {
         options: {
           title: {
             display: true,
-            text: 'Visits per hour for today'
+            text: 'Visits per hour for ' + this.selectedDay + " of " + this.selectedMonth
           },
           scales: {
             yAxes: [{
@@ -258,6 +260,22 @@ export default {
         return "December";
         break;
       }
+    },
+    logData() {
+
+      var checkInHours = []
+      for (var visit of this.data) {
+        // var date = new Date(visit.date)
+        checkInHours.push(visit.date)
+      }
+      var sum = checkInHours.reduce(add, 0);
+
+      function add(a, b) {
+        return a + b;
+      }
+      console.log('########################')
+      console.log(sum / checkInHours.length);
+      console.log('########################')
     }
   },
   // mounted() {
