@@ -1,20 +1,27 @@
 <template>
   <div class="hello">
 
-    <select v-model="selectedMonth">
+    <select v-model="selectedMonth" @change="monthFilter">
       <option disabled selected value="">Please select one</option>
       <option v-for="month in months" v-bind:value="month.month">
         {{ month.name }}
       </option>
     </select>
-    <button v-on:click="monthFilter">Month Selector</button>
 
-    <p>Selected Option: {{ selectedMonth }}</p>
+    <select v-model="selectedDay" @change="renderHourlyBarChart">
+      <option disabled selected value="" v-if="selectedMonth">Select a day</option>
+      <option disabled selected value="" v-else="">← Select month</option>
 
-    <!-- Line Break  -->
+      <option v-for="day in this.selectedMonthDays" v-bind:value="day">
+        {{ day }}
+      </option>
+    </select>
 
-    <div class="chartBock">
+    <div class="chartBlock">
       <canvas id="month-visits-chart"></canvas>
+    </div>
+    <div class="chartBlock">
+      <canvas id="hourly-visits-chart"></canvas>
     </div>
   </div>
 
@@ -50,7 +57,10 @@ export default {
         {name: 'Dec', shortName: 'dec', month: 12}
       ],
       selectedMonth: '',
-      month: []
+      selectedDay: '',
+      selectedMonthDays: '',
+      month: [],
+      monthName: ''
     }
   },
   created() {
@@ -91,23 +101,25 @@ export default {
     renderBarChart() {
 
       var today = new Date();
+      var mm = this.selectedMonth;
 
-      var mm;
-
-      if (mm === '') {
+      if (mm === undefined || mm === "") {
         mm = today.getMonth()+1
       } else {
         mm = this.selectedMonth
       }
+      this.monthName = this.getMonth(mm)
 
       var dayMonth = []
       var visits = []
 
-      var days_array = this.getDaysInMonth(mm, 2018)
+      var days_array = this.getDaysInMonth(mm-1, 2018)
 
       for (var day of days_array) {
         dayMonth.push(day.getDate())
       }
+
+      this.selectedMonthDays = dayMonth
 
       var yy = today.getYear()
       for (var i = 0; i < dayMonth.length; i++) {
@@ -142,7 +154,7 @@ export default {
         options: {
           title: {
             display: true,
-            text: 'Visits per day per for this month'
+            text: 'Visits per day per for ' + this.monthName
           },
           scales: {
             yAxes: [{
@@ -154,7 +166,103 @@ export default {
         }
       });
     },
-  }
+    renderHourlyBarChart() {
+      var visits = [];
+      var hours_array = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+      var today = new Date();
+      // var dd = today.getDate();
+      var dd = this.selectedDay
+      var mm = this.selectedMonth
+      var yy = today.getYear()
+      for (var i = 0; i < hours_array.length; i++) {
+        var hourVisitCount = 0
+        for (var visit of this.data) {
+          var visitDate = new Date(visit.date)
+
+          if (visitDate.getHours() === hours_array[i] && visitDate.getDate() === dd && visitDate.getMonth()+1 === mm) {
+            hourVisitCount += 1;
+          }
+        }
+        visits.push(hourVisitCount);
+      }
+
+      var ctx = document.getElementById("hourly-visits-chart").getContext('2d');
+      var myBarChart = new Chart(ctx, {
+        type: 'horizontalBar',
+        data: {
+          labels: hours_array,
+          backgroundColor: '#FFFFFF',
+          backgroundColor: '#FFFFFF',
+          datasets: [{
+            label: 'Visits today by hour',
+            data: visits,
+            backgroundColor:
+            '#CC0033',
+            borderColor: [
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          title: {
+            display: true,
+            text: 'Visits per hour for today'
+          },
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero:true
+              }
+            }]
+          }
+        }
+      });
+    },
+    getMonth(monthNumber){
+      switch(monthNumber) {
+        case 1:
+        return "January";
+        break;
+        case 2:
+        return "February"
+        break;
+        case 3:
+        return "March";
+        break;
+        case 4:
+        return "April";
+        break;
+        case 5:
+        return "May";
+        break;
+        case 6:
+        return "June";
+        break;
+        case 7:
+        return "July";
+        break;
+        case 8:
+        return "August"
+        break;
+        case 9:
+        return "September";
+        break;
+        case 10:
+        return "October";
+        break;
+        case 11:
+        return "November";
+        break;
+        case 12:
+        return "December";
+        break;
+      }
+    }
+  },
+  // mounted() {
+  //   this.renderBarChart()
+  // }
 }
 </script>
 
