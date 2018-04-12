@@ -93,7 +93,6 @@ export default {
 
       var date = new Date(year, month, 1);
       var days = [];
-      // console.log('month', month, 'date.getMonth()', date.getMonth())
       while (date.getMonth() === month) {
         days.push(new Date(date));
         date.setDate(date.getDate() + 1);
@@ -146,14 +145,18 @@ export default {
           datasets: [{
             label: 'Visits per day per for ' + this.monthName,
             data: visits,
-            backgroundColor:
-            '#CC0033',
+            backgroundColor: '#CC0033',
             borderColor: [
             ],
             borderWidth: 1
           }]
         },
         options: {
+          'onClick' : function (evt, item) {
+            var day = item[0]['_model'].label
+            this.selectedDay = day
+            this.renderHourlyBarChart();
+          },
           title: {
             display: true,
             text: 'Visits per day per for ' + this.monthName
@@ -278,9 +281,6 @@ export default {
       console.log('########################')
     }
   },
-  // mounted() {
-  //   this.renderBarChart()
-  // }
 }
 </script>
 
