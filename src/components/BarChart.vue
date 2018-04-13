@@ -17,13 +17,22 @@
       </option>
     </select>
 
-    <button type="button" name="button" v-on:click="logData">logData</button>
+    <button type="button" name="button" v-on:click="renderHourlyPercentageBarChart">logData</button>
+
+    <div class="chartBlock">
+      <canvas id="year-visits-chart"></canvas>
+    </div>
 
     <div class="chartBlock">
       <canvas id="month-visits-chart"></canvas>
     </div>
+
     <div class="chartBlock">
       <canvas id="hourly-visits-chart"></canvas>
+    </div>
+
+    <div class="chartBlock">
+      <canvas id="total-hourly-visits-chart"></canvas>
     </div>
   </div>
 
@@ -34,7 +43,6 @@
 // import {makeRequest, requestComplete} from "../../helpers/helpers"
 
 // example URL with params:
-// https://api.mlab.com/api/1/databases/signins/collections/signins?apiKey=Vp2I1nmC961_lV2whDojmmOuZzXb0S_o&l=10000&q={%22date%22:%20{%22$gt%22:%201523361490925}}
 
 export default {
   /* eslint-disable */
@@ -56,13 +64,15 @@ export default {
         {name: 'September', shortName: 'sept', month: 9},
         {name: 'October', shortName: 'oct', month: 10},
         {name: 'November', shortName: 'nov', month: 11},
-        {name: 'Dec', shortName: 'dec', month: 12}
+        {name: 'December', shortName: 'dec', month: 12}
       ],
       selectedMonth: '',
       selectedDay: '',
       selectedMonthDays: '',
       month: [],
-      monthName: ''
+      monthName: '',
+      selectedYear: '',
+      selectedHour: ''
     }
   },
   created() {
@@ -71,6 +81,7 @@ export default {
       this.data = response.body;
       this.dataLoaded = true;
       console.log("Data has loaded");
+      this.renderYearlyBarChart()
     })
   },
   methods: {
@@ -81,7 +92,7 @@ export default {
         signin =>
         this.returnByMonth(signin, month)
       )
-      this.renderBarChart();
+      this.renderMonthlyBarChart();
     },
     returnByMonth(signin, month) {
       var timeStamp = new Date(signin.date)
@@ -99,7 +110,159 @@ export default {
       }
       return days;
     },
-    renderBarChart() {
+    renderYearlyBarChart() {
+
+      var today = new Date();
+
+      var yy = this.selectedYear
+
+      if (yy === undefined || yy === "") {
+        yy = today.getFullYear()
+      } else {
+        yy = this.selectedYear
+
+      }
+
+      var yearArray = []
+      var yearNumbers = []
+
+      for (var year of this.months) {
+        yearArray.push(year.name)
+        yearNumbers.push(year.month)
+      }
+
+      var visitPerMonth = []
+      // for (var i = 0; i < dayMonth.length; i++) {
+      //   var visitDayCount = 0
+      for (var number of yearNumbers) {
+        var visitCount = 0
+        for (var visit of this.data) {
+          var visitDate = new Date(visit.date)
+          if (visitDate.getMonth() + 1 === number) {
+            visitCount += 1
+          }
+        }
+        visitPerMonth.push(visitCount)
+      }
+
+      var ctx = document.getElementById("year-visits-chart").getContext('2d');
+      var myBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: yearArray,
+          backgroundColor: '#FFFFFF',
+          backgroundColor: '#FFFFFF',
+          datasets: [{
+            label: 'Visits per day per for ' + this.selectedYear,
+            data: visitPerMonth,
+            backgroundColor: '#CC0033',
+            borderColor: [
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          'onClick' : (evt, item) => {
+            var month = item[0]['_model'].label
+            var monthNumber = this.getMonthReverse(month);
+            this.selectedMonth = monthNumber
+            this.renderMonthlyBarChart();
+          },
+          title: {
+            display: true,
+            text: 'Visits per day per for ' + this.selectedYear
+          },
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero:true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: 'Visits'
+              }
+            }],
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Month'
+              }
+            }]
+          }
+        }
+      });
+    },
+
+    renderHourlyPercentageBarChart() {
+
+      var today = new Date();
+      var hoursArray = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+      var visitsPerHour = []
+
+      for (var number of hoursArray) {
+        var visitCount = 0
+        for (var visit of this.data) {
+          var visitDate = new Date(visit.date)
+          if (visitDate.getHours() === number) {
+            visitCount += 1
+          }
+        }
+        visitsPerHour.push(visitCount)
+      }
+
+      var totalVisits = visitsPerHour.reduce((x, y) => x + y);
+      var visitsPerHourPercent = []
+
+      for (var number of visitsPerHour) {
+        var percentage = (number / totalVisits) * 100
+        var rounded = Math.round(percentage)
+        visitsPerHourPercent.push(rounded)
+      }
+
+      var ctx = document.getElementById("total-hourly-visits-chart").getContext('2d');
+      var myBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: hoursArray,
+          backgroundColor: '#FFFFFF',
+          backgroundColor: '#FFFFFF',
+          datasets: [{
+            label: 'Visit hour by percentage',
+            data: visitsPerHourPercent,
+            backgroundColor: '#CC0033',
+            borderColor: [
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          title: {
+            display: true,
+            text: 'Visit hour by percentage'
+          },
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero:true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: 'Percentage (%)'
+              }
+            }],
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Hours'
+              }
+            }]
+          }
+        }
+      });
+    },
+
+
+    renderMonthlyBarChart() {
 
       var today = new Date();
       var mm = this.selectedMonth;
@@ -165,6 +328,16 @@ export default {
             yAxes: [{
               ticks: {
                 beginAtZero:true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: 'Visits'
+              }
+            }],
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Day'
               }
             }]
           }
@@ -212,12 +385,22 @@ export default {
         options: {
           title: {
             display: true,
-            text: 'Visits per hour for ' + this.selectedDay + " of " + this.selectedMonth
+            text: 'Visits per hour for ' + this.selectedDay + " of " + this.getMonth(this.selectedMonth)
           },
           scales: {
             yAxes: [{
               ticks: {
                 beginAtZero:true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: 'Visits'
+              }
+            }],
+            xAxes: [{
+              scaleLabel: {
+                display: true,
+                labelString: 'Hour'
               }
             }]
           }
@@ -261,6 +444,46 @@ export default {
         break;
         case 12:
         return "December";
+        break;
+      }
+    },
+    getMonthReverse(monthName){
+      switch(monthName) {
+        case "January":
+        return 1;
+        break;
+        case "February":
+        return 2
+        break;
+        case "March":
+        return 3;
+        break;
+        case "April":
+        return 4;
+        break;
+        case "May":
+        return 5;
+        break;
+        case "June":
+        return 6;
+        break;
+        case "July":
+        return 7;
+        break;
+        case "August":
+        return 8
+        break;
+        case "September":
+        return 9;
+        break;
+        case "October":
+        return 10;
+        break;
+        case "November":
+        return 11;
+        break;
+        case "December":
+        return 12;
         break;
       }
     },
