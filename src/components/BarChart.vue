@@ -152,7 +152,7 @@ export default {
           }]
         },
         options: {
-          'onClick' : function (evt, item) {
+          'onClick' : (evt, item) => {
             var day = item[0]['_model'].label
             this.selectedDay = day
             this.renderHourlyBarChart();
