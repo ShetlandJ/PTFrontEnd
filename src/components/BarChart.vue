@@ -1,23 +1,27 @@
 <template>
   <div class="hello">
 
-    <select v-model="selectedMonth" @change="monthFilter">
-      <option disabled selected value="">Please select one</option>
-      <option v-for="month in months" v-bind:value="month.month">
-        {{ month.name }}
-      </option>
-    </select>
+    <h2>Visits today: {{ visitsToday }}</h2>
+    <h2>Visits this month: {{ visitsThisMonth }}</h2>
 
-    <select v-model="selectedDay" @change="renderHourlyBarChart">
-      <option disabled selected value="" v-if="selectedMonth">Select a day</option>
-      <option disabled selected value="" v-else="">← Select month</option>
+    <div id="select-boxes">
 
-      <option v-for="day in this.selectedMonthDays" v-bind:value="day">
-        {{ day }}
-      </option>
-    </select>
+      <select v-model="selectedMonth" @change="monthFilter">
+        <option disabled selected value="">Please select one</option>
+        <option v-for="month in months" v-bind:value="month.month">
+          {{ month.name }}
+        </option>
+      </select>
 
-    <button type="button" name="button" v-on:click="renderHourlyPercentageBarChart">logData</button>
+      <select v-model="selectedDay" @change="renderHourlyBarChart">
+        <option disabled selected value="" v-if="selectedMonth">Select a day</option>
+        <option disabled selected value="" v-else="">← Select month</option>
+
+        <option v-for="day in this.selectedMonthDays" v-bind:value="day">
+          {{ day }}
+        </option>
+      </select>
+    </div>
 
     <div class="chartBlock">
       <canvas id="year-visits-chart"></canvas>
@@ -34,6 +38,7 @@
     <div class="chartBlock">
       <canvas id="total-hourly-visits-chart"></canvas>
     </div>
+
   </div>
 
 </template>
@@ -72,7 +77,11 @@ export default {
       month: [],
       monthName: '',
       selectedYear: '',
-      selectedHour: ''
+      selectedHour: '',
+      myBarChart: '',
+      hourChart: '',
+      visitsToday: '',
+      visitsThisMonth: ''
     }
   },
   created() {
@@ -80,8 +89,10 @@ export default {
     .then(response => {
       this.data = response.body;
       this.dataLoaded = true;
-      console.log("Data has loaded");
+      console.log("Data has loaded")
       this.renderYearlyBarChart()
+      this.renderHourlyPercentageBarChart()
+      this.dailyStats()
     })
   },
   methods: {
@@ -94,12 +105,31 @@ export default {
       )
       this.renderMonthlyBarChart();
     },
+
+    dailyStats() {
+      var today = new Date()
+      var dayVisitCounter = 0
+      var monthVisitCounter = 0
+      for (var visit of this.data) {
+        var visitDate = new Date(visit.date)
+        if (visitDate.getDate() === today.getDate() && visitDate.getMonth()+1 === today.getMonth()+1 ) {
+          dayVisitCounter += 1
+        }
+        if (visitDate.getMonth()+1 === today.getMonth()+1 && visitDate.getFullYear() === today.getFullYear()) {
+        monthVisitCounter += 1
+        }
+      }
+      this.visitsToday = dayVisitCounter
+      this.visitsThisMonth = monthVisitCounter
+    },
+
     returnByMonth(signin, month) {
       var timeStamp = new Date(signin.date)
       if (timeStamp.getMonth()+1 === month) {
         this.month.push(signin);
       }
     },
+
     getDaysInMonth(month, year) {
 
       var date = new Date(year, month, 1);
@@ -110,6 +140,7 @@ export default {
       }
       return days;
     },
+
     renderYearlyBarChart() {
 
       var today = new Date();
@@ -146,7 +177,7 @@ export default {
       }
 
       var ctx = document.getElementById("year-visits-chart").getContext('2d');
-      var myBarChart = new Chart(ctx, {
+      var yearBarChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: yearArray,
@@ -166,6 +197,9 @@ export default {
             var month = item[0]['_model'].label
             var monthNumber = this.getMonthReverse(month);
             this.selectedMonth = monthNumber
+            if (this.myBarChart) {
+              this.myBarChart.destroy()
+            }
             this.renderMonthlyBarChart();
           },
           title: {
@@ -261,7 +295,6 @@ export default {
       });
     },
 
-
     renderMonthlyBarChart() {
 
       var today = new Date();
@@ -299,7 +332,8 @@ export default {
       }
 
       var ctx = document.getElementById("month-visits-chart").getContext('2d');
-      var myBarChart = new Chart(ctx, {
+
+      this.myBarChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: dayMonth,
@@ -318,6 +352,10 @@ export default {
           'onClick' : (evt, item) => {
             var day = item[0]['_model'].label
             this.selectedDay = day
+            if (this.hourChart) {
+              this.hourChart.destroy()
+            }
+
             this.renderHourlyBarChart();
           },
           title: {
@@ -344,21 +382,22 @@ export default {
         }
       });
     },
+
     renderHourlyBarChart() {
       var visits = [];
-      var hours_array = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+      var hoursArray = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
       var today = new Date();
-      // var dd = today.getDate();
+
       var dd = this.selectedDay
       var mm = this.selectedMonth
       var yy = today.getYear()
-      for (var i = 0; i < hours_array.length; i++) {
+      for (var i = 0; i < hoursArray.length; i++) {
         var hourVisitCount = 0
         for (var visit of this.data) {
           var visitDate = new Date(visit.date)
 
-          if (visitDate.getHours() === hours_array[i] && visitDate.getDate() === dd && visitDate.getMonth()+1 === mm) {
+          if (visitDate.getHours() === hoursArray[i] && visitDate.getDate() === dd && visitDate.getMonth()+1 === mm) {
             hourVisitCount += 1;
           }
         }
@@ -366,14 +405,14 @@ export default {
       }
 
       var ctx = document.getElementById("hourly-visits-chart").getContext('2d');
-      var myBarChart = new Chart(ctx, {
+      this.hourChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: hours_array,
+          labels: hoursArray,
           backgroundColor: '#FFFFFF',
           backgroundColor: '#FFFFFF',
           datasets: [{
-            label: 'Visits per hour for ' + this.selectedDay + " of " + this.selectedMonth,
+            label: 'Visits per hour for ' + this.selectedDay + "/" + this.getMonth(this.selectedMonth),
             data: visits,
             backgroundColor:
             '#CC0033',
@@ -385,7 +424,7 @@ export default {
         options: {
           title: {
             display: true,
-            text: 'Visits per hour for ' + this.selectedDay + " of " + this.getMonth(this.selectedMonth)
+            text: 'Visits per hour for ' + this.selectedDay + "/" + this.getMonth(this.selectedMonth)
           },
           scales: {
             yAxes: [{
@@ -487,22 +526,6 @@ export default {
         break;
       }
     },
-    logData() {
-
-      var checkInHours = []
-      for (var visit of this.data) {
-        // var date = new Date(visit.date)
-        checkInHours.push(visit.date)
-      }
-      var sum = checkInHours.reduce(add, 0);
-
-      function add(a, b) {
-        return a + b;
-      }
-      console.log('########################')
-      console.log(sum / checkInHours.length);
-      console.log('########################')
-    }
   },
 }
 </script>
